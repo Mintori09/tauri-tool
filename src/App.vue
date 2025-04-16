@@ -1,39 +1,59 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from 'vue'
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from '@tauri-apps/api/event'
+import "./style.css"
 
-const greetMsg = ref("");
-const name = ref("");
+const baseUrl = ref('')
+const downloadedChapters = ref<string[]>([])
+const done = ref(false)
+async function startDownload() {
+  downloadedChapters.value = []
+  done.value = false
+  console.log(baseUrl)
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
+  await invoke('start_download', { baseUrl: baseUrl.value })
 }
+
+onMounted(async () => {
+
+  listen<string>('chapter-downloaded', (event) => {
+    downloadedChapters.value.push(event.payload)
+  })
+
+  await listen('download-finished', () => {
+    done.value = true
+  })
+
+  await listen('system-error', (event) => {
+    alert('Lỗi hệ thống: ' + event.payload)
+  })
+})
 </script>
 
 <template>
-  <main class="container">
-    <h1>Welcome to Tauri + Vue</h1>
+ <div style="padding: 10px;">
+    <h1 >Downloader</h1>
+    <input
+      v-model="baseUrl"
+      placeholder="Dán link chương 1 ở metruyenchu"
+      class="border p-2 w-full mt-2"
+    />
+    <button @click="startDownload" class="bg-blue-500 text-white px-4 py-2 mt-2 rounded">
+      Bắt đầu tải
+    </button>
 
-    <div class="row">
-      <a href="https://vitejs.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
+    <div class="">
+      <h2 class="">Tiến trình:</h2>
+      <ul>
+        <li v-for="(chapter, index) in downloadedChapters" :key="index">
+          ✅ {{ chapter }}
+        </li>
+      </ul>
     </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
 
-    <form class="row" @submit.prevent="greet">
-      <input id="greet-input" v-model="name" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p>{{ greetMsg }}</p>
-  </main>
+    <div v-if="done" class="mt-4 text-green-600 font-bold">🎉 Tải xong rồi!</div>
+  </div>
 </template>
 
 <style scoped>
