@@ -29,6 +29,7 @@ fn get_url_metruyenchu(url: &str, num: i32) -> String {
 
 async fn fetch_content_metruyenchu(
     url: String,
+    mut folder_path: PathBuf,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let resp = reqwest::get(&url).await;
     match resp {
@@ -64,11 +65,9 @@ async fn fetch_content_metruyenchu(
             println!("Đang lưu chương: {}", title);
 
             // Ghi file
-            let mut path = PathBuf::from(env::var("HOME").unwrap_or_else(|_| ".".into()));
-            path.push("Desktop/Novel");
-            fs::create_dir_all(&path)?;
-            path.push(format!("{}.txt", title));
-            let mut file = File::create(&path)?;
+            fs::create_dir_all(&folder_path)?;
+            folder_path.push(format!("{}.txt", title));
+            let mut file = File::create(&folder_path)?;
             file.write_all(content.as_bytes())?;
 
             Ok(title)
@@ -80,6 +79,7 @@ async fn fetch_content_metruyenchu(
 pub async fn download_truyencv(
     app_handle: AppHandle,
     base_url: &str,
+    folder_path: &str,
 ) -> Result<(), Box<dyn Error>> {
     let index = Arc::new(Mutex::new(1));
     let mut set = JoinSet::new();
@@ -103,8 +103,10 @@ pub async fn download_truyencv(
             let url = get_url_metruyenchu(base_url, chap);
             let handle = app_handle.clone();
 
+            let mut path = PathBuf::new();
+            path.push(folder_path);
             set.spawn(async move {
-                let result = fetch_content_metruyenchu(url).await;
+                let result = fetch_content_metruyenchu(url, path).await;
                 if let Ok(title) = &result {
                     let _ = handle.emit("chapter-downloaded", title);
                 }
