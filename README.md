@@ -1,6 +1,8 @@
 # Tauri + Vue 3 + Vite Starter Kit
 
 A modern, production-ready starter kit for building cross-platform desktop applications using Tauri v2, Vue 3, and Vite.
+## Illu
+![Alt text](image/Screenshot_20250506_145736.png)
 
 ## 🚀 Features
 
